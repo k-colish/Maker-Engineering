@@ -3,6 +3,9 @@
 #include <WebServer.h>
 #include <ESPmDNS.h>
 
+void moveStepperAngle(int steps, int direction);
+void handleMove30();
+
 int Pin1 = 13; //IN1 is connected to 13 
 int Pin2 = 12; //IN2 is connected to 12  
 int Pin3 = 14; //IN3 is connected to 14 
@@ -16,9 +19,9 @@ int pole4[] = {1,1,0,0, 0,0,0,1, 0}; //pole4, 8 step values
 int poleStep = 0; 
 int dirStatus = 3; // stores direction status 3= stop (do not change)
 
-String buttonTitle1[] = {"CCW", "CW"};
-String buttonTitle2[] = {"CCW", "CW"};
-String argId[] = {"ccw", "cw"};
+String buttonTitle1[] = {"CCW", "CW", "START"};
+String buttonTitle2[] = {"CCW", "CW", "START"};
+String argId[] = {"ccw", "cw", "start"};
 
 const char *ssid = "ChickenTest";
 const char *password = "12345678";
@@ -73,7 +76,11 @@ void handleRoot() {
    HTML += "<h2><span style=\"background-color: #FFFF00\">Motor Running in CW</span></h2>";
  } else if (dirStatus == 1) {
    HTML += "<h2><span style=\"background-color: #FFFF00\">Motor Running in CCW</span></h2>";
- } else {
+ } 
+ else if (dirStatus == 4){
+  HTML += "<h2><span style=\"background-color: #FFFF00\">Motor Running</span></h2>";
+ }
+ else {
    HTML += "<h2><span style=\"background-color: #FFFF00\">Motor OFF</span></h2>";
  }
  
@@ -105,6 +112,26 @@ void handleRoot() {
    HTML += "=on\">";
    HTML += buttonTitle2[1];
  }
+HTML += "</a>"
+        "</div>";
+
+if(dirStatus = 4){
+  HTML += "<div class=\"btn\">"
+           "<a class=\"angleButton\" style=\"background-color:#f56464\" href=\"/move30?";
+   HTML += argId[2];
+   HTML += "=off\">";
+   HTML += buttonTitle1[2];
+} 
+else{
+  HTML += "<div class=\"btn\">"
+      "<a class=\"angleButton\" style=\"background-color:#90ee90\" href=\"/move30?";
+  HTML += argId[2];
+  HTML += "=on\">";
+  HTML += buttonTitle2[2];
+}
+HTML += "</a>"
+        "</div>";
+
  
   server.send(200, "text/html", HTML);  
 }
@@ -142,7 +169,14 @@ void motorControl() {
     dirStatus = 2;  // CW  
   } else if (server.arg(argId[1]) == "off") {
     dirStatus = 3;  // motor OFF
-  }  
+  }
+  else if (server.arg(argId[2]) == "on"){
+    dirStatus = 4;
+    handleMove30();
+  }
+  else if (server.arg(argId[2]) == "off"){
+    dirStatus = 3;
+  }
   handleRoot();
 }
 
@@ -169,7 +203,8 @@ void setup(void) {
   }
 
   server.on("/", handleRoot);
-  server.on("/motor", HTTP_GET, motorControl);           
+  server.on("/motor", HTTP_GET, motorControl);  
+  server.on("/move30",HTTP_GET, handleMove30);         
   server.onNotFound(handleNotFound);
   server.begin();
   Serial.println("HTTP server started");
@@ -178,20 +213,49 @@ void setup(void) {
 
 void loop(void) {
   server.handleClient();
-  if (dirStatus == 1) { 
-     poleStep++; 
-     driveStepper(poleStep);    
-  } else if (dirStatus == 2) { 
-     poleStep--; 
-     driveStepper(poleStep);    
-  } else {
-     driveStepper(8);   
+  while(dirStatus == 1){
+    if(poleStep >= 7){
+      poleStep = 0;
+    }
+    driveStepper(poleStep);
+    poleStep++; 
+    delay(1);
+    server.handleClient();
   }
-  if (poleStep > 7) { 
-     poleStep = 0; 
-  } 
-  if (poleStep < 0) { 
-     poleStep = 7; 
-  } 
+  while(dirStatus == 2){
+    poleStep--; 
+    driveStepper(poleStep);
+    if(poleStep == 0){
+      poleStep = 7;
+    }
+    delay(1);
+    server.handleClient();
+  }
+  if(dirStatus == 3){
+    poleStep = 8;
+  }
   delay(1);
+}
+
+void moveStepperAngle(int steps, int direction){
+  for (int i = 0; i < steps; i++){
+    if(direction == 1){ //CCW
+      poleStep = (poleStep + 1) % 8;
+    }
+    else{
+      poleStep = (poleStep - 1 + 8) % 8;
+    }
+    driveStepper(poleStep);
+    delay(2);
+  }
+}
+
+void handleMove30(){
+  int steps = 4096; // 360 degrees = 4096 steps. Ex: 1024 = 90 deg.
+
+  moveStepperAngle(steps,2);
+  delay(2000);
+  moveStepperAngle(steps,1);
+  dirStatus = 3;
+  handleRoot();
 }
