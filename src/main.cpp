@@ -3,8 +3,6 @@
 #include <WebServer.h>
 #include <ESPmDNS.h>
 
-void moveStepperAngle(int steps, int direction);
-void handleMove30();
 
 int Pin1 = 13; //IN1 is connected to 13 
 int Pin2 = 12; //IN2 is connected to 12  
@@ -19,11 +17,14 @@ int pole4[] = {1,1,0,0, 0,0,0,1, 0}; //pole4, 8 step values
 int poleStep = 0; 
 int dirStatus = 3; // stores direction status 3= stop (do not change)
 
+void moveStepperAngle(int steps, int direction);
+void handleMove30();
+
 String buttonTitle1[] = {"CCW", "CW", "START"};
 String buttonTitle2[] = {"CCW", "CW", "START"};
 String argId[] = {"ccw", "cw", "start"};
 
-const char *ssid = "ChickenTest";
+const char *ssid = "ChickenWIFI";
 const char *password = "12345678";
 
 WebServer server(80);
@@ -84,47 +85,47 @@ void handleRoot() {
    HTML += "<h2><span style=\"background-color: #FFFF00\">Motor OFF</span></h2>";
  }
  
- if (dirStatus == 1) {
-   HTML += "<div class=\"btn\"><a class=\"angleButton\" style=\"background-color:#f56464\" href=\"/motor?";
-   HTML += argId[0];
-   HTML += "=off\">";
-   HTML += buttonTitle1[0];
- } else {
-   HTML += "<div class=\"btn\">"
-           "<a class=\"angleButton\" style=\"background-color:#90ee90\" href=\"/motor?";
-   HTML += argId[0];
-   HTML += "=on\">";
-   HTML += buttonTitle2[0];
- }
- HTML += "</a>"
-         "</div>";
+//  if (dirStatus == 1) {
+//    HTML += "<div class=\"btn\"><a class=\"angleButton\" style=\"background-color:#f56464\" href=\"/motor?";
+//    HTML += argId[0];
+//    HTML += "=off\">";
+//    HTML += buttonTitle1[0];
+//  } else {
+//    HTML += "<div class=\"btn\">"
+//            "<a class=\"angleButton\" style=\"background-color:#90ee90\" href=\"/motor?";
+//    HTML += argId[0];
+//    HTML += "=on\">";
+//    HTML += buttonTitle2[0];
+//  }
+//  HTML += "</a>"
+//          "</div>";
  
- if (dirStatus == 2) {
-   HTML += "<div class=\"btn\">"
-           "<a class=\"angleButton\" style=\"background-color:#f56464\" href=\"/motor?";
-   HTML += argId[1];
-   HTML += "=off\">";
-   HTML += buttonTitle1[1];
- } else {
-   HTML += "<div class=\"btn\">"
-           "<a class=\"angleButton\" style=\"background-color:#90ee90\" href=\"/motor?";
-   HTML += argId[1];
-   HTML += "=on\">";
-   HTML += buttonTitle2[1];
- }
-HTML += "</a>"
-        "</div>";
+//  if (dirStatus == 2) {
+//    HTML += "<div class=\"btn\">"
+//            "<a class=\"angleButton\" style=\"background-color:#f56464\" href=\"/motor?";
+//    HTML += argId[1];
+//    HTML += "=off\">";
+//    HTML += buttonTitle1[1];
+//  } else {
+//    HTML += "<div class=\"btn\">"
+//            "<a class=\"angleButton\" style=\"background-color:#90ee90\" href=\"/motor?";
+//    HTML += argId[1];
+//    HTML += "=on\">";
+//    HTML += buttonTitle2[1];
+//  }
+// HTML += "</a>"
+//         "</div>";
 
-if(dirStatus = 4){
+if(dirStatus == 4){
   HTML += "<div class=\"btn\">"
-           "<a class=\"angleButton\" style=\"background-color:#f56464\" href=\"/move30?";
+           "<a class=\"angleButton\" style=\"background-color:#f56464\" href=\"/motor?";
    HTML += argId[2];
    HTML += "=off\">";
    HTML += buttonTitle1[2];
 } 
 else{
   HTML += "<div class=\"btn\">"
-      "<a class=\"angleButton\" style=\"background-color:#90ee90\" href=\"/move30?";
+      "<a class=\"angleButton\" style=\"background-color:#90ee90\" href=\"/motor?";
   HTML += argId[2];
   HTML += "=on\">";
   HTML += buttonTitle2[2];
@@ -171,8 +172,7 @@ void motorControl() {
     dirStatus = 3;  // motor OFF
   }
   else if (server.arg(argId[2]) == "on"){
-    dirStatus = 4;
-    handleMove30();
+    dirStatus = 4; // call move30
   }
   else if (server.arg(argId[2]) == "off"){
     dirStatus = 3;
@@ -231,6 +231,11 @@ void loop(void) {
     delay(1);
     server.handleClient();
   }
+  while(dirStatus == 4){
+    handleMove30();
+    dirStatus = 3;
+    server.handleClient();
+  }
   if(dirStatus == 3){
     poleStep = 8;
   }
@@ -256,6 +261,5 @@ void handleMove30(){
   moveStepperAngle(steps,2);
   delay(2000);
   moveStepperAngle(steps,1);
-  dirStatus = 3;
   handleRoot();
 }
