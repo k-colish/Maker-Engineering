@@ -2,6 +2,7 @@
 #include <WiFiClient.h>
 #include <WebServer.h>
 #include <ESPmDNS.h>
+#include <string>
 
 
 int Pin1 = 13; //IN1 is connected to 13 
@@ -17,6 +18,8 @@ int pole4[] = {1,1,0,0, 0,0,0,1, 0}; //pole4, 8 step values
 bool systemOn = false;
 bool infoDisplayed = false;
 int poleStep = 0; 
+int hours = 0;
+int minutes = 0;
 int dirStatus = 3; // stores direction status 3= stop (do not change)
 String selectedSize = "Small"; // default to small feed size
 
@@ -27,12 +30,14 @@ void startStop();
 void smallSize();
 void mediumSize();
 void largeSize();
+void setPeriod();
 
 String buttonTitle1[] = {"CCW", "CW", "START"};
 String buttonTitle2[] = {"CCW", "CW", "START"};
+String values = "";
 String argId[] = {"ccw", "cw", "start", "info", "small", "medium", "large", "hours", "minutes"};
 
-const char *ssid = "ChickenWIFI";
+const char *ssid = "Chicken";
 const char *password = "12345678";
 
 WebServer server(80);
@@ -224,17 +229,18 @@ HTML += "=on\">Medium</a>"
 "</form>";
 }
 HTML += "<h2>Feeding Period:</h2> "
-    "<form action=\"/period?\">"
+    "<form name=\"period\" action=\"/period?\" method=\"GET\">"
       "<label for=\"hours\">Hours:</label>"
-      "<input type=\"number\" id=\"hours\" name=\"minutes\" min=\"0\" max=\"24\" placeholder=\"0-24\"";
-  HTML += argId[7];
-  HTML +="=>"
+      "<input type=\"number\" id=\"hours\" name=\"hours\" min=\"0\" max=\"24\" placeholder=\"0-24\">";
         
       "<label for=\"minutes\">Minutes:</label>"
       "<input type=\"number\" id=\"minutes\" name=\"minutes\" min=\"0\" max=\"59\" placeholder=\"0-59\"><br><br>"
 
       "<input type=\"submit\" value=\"Set Time\">"
     "</form>";
+  HTML += "<p>";
+  HTML += hours;
+
   server.send(200, "text/html", HTML);  
 }
 
@@ -339,6 +345,12 @@ void largeSize(){
   handleRoot();
 }
 
+void setPeriod(){
+  values = server.arg("hours");
+  hours = atoi(values.c_str());
+  handleRoot();
+}
+
 void setup(void) {
   pinMode(Pin1, OUTPUT);  
   pinMode(Pin2, OUTPUT);   
@@ -363,6 +375,7 @@ void setup(void) {
 
   server.on("/", handleRoot);
   server.on("/info", HTTP_GET, displayInfo);
+  server.on("/period", HTTP_GET, setPeriod);
   server.on("/startStop", HTTP_GET, startStop);
   server.on("/smallSize", HTTP_GET, smallSize);
   server.on("/mediumSize", HTTP_GET, mediumSize);
