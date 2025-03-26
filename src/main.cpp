@@ -2,40 +2,41 @@
 #include <WiFiClient.h>
 #include <WebServer.h>
 #include <ESPmDNS.h>
+#include <AccelStepper.h>
 
+#define STEP_PIN 13
+#define DIR_PIN 12
 
-int Pin1 = 13; //IN1 is connected to 13 
-int Pin2 = 12; //IN2 is connected to 12  
-int Pin3 = 14; //IN3 is connected to 14 
-int Pin4 = 27; //IN4 is connected to 27 
-
-int pole1[] = {0,0,0,0, 0,1,1,1, 0}; //pole1, 8 step values
-int pole2[] = {0,0,0,1, 1,1,0,0, 0}; //pole2, 8 step values
-int pole3[] = {0,1,1,1, 0,0,0,0, 0}; //pole3, 8 step values
-int pole4[] = {1,1,0,0, 0,0,0,1, 0}; //pole4, 8 step values
+int openDelay;
+int targetPOS = 267;
+int homePOS = 0;
+int feedHours = 0;
+int feedMinutes = 0;
+int interval;
 
 bool systemOn = false;
 bool infoDisplayed = false;
-int poleStep = 0; 
 int dirStatus = 3; // stores direction status 3= stop (do not change)
 String selectedSize = "Small"; // default to small feed size
 
-void moveStepperAngle(int steps, int direction);
-void handleMove30();
 void displayInfo();
 void startStop();
 void smallSize();
 void mediumSize();
 void largeSize();
+void foodRelease();
+void setPeriod();
 
 String buttonTitle1[] = {"CCW", "CW", "START"};
 String buttonTitle2[] = {"CCW", "CW", "START"};
 String argId[] = {"ccw", "cw", "start", "info", "small", "medium", "large", "hours", "minutes"};
 
-const char *ssid = "ChickenWIFI";
+const char *ssid = "ChickenTEST";
 const char *password = "12345678";
 
 WebServer server(80);
+
+AccelStepper stepper1(1, STEP_PIN, DIR_PIN);
 
 void handleRoot() {
    String HTML = "<!DOCTYPE html>"
@@ -226,7 +227,7 @@ HTML += "=on\">Medium</a>"
 HTML += "<h2>Feeding Period:</h2> "
     "<form action=\"/period?\">"
       "<label for=\"hours\">Hours:</label>"
-      "<input type=\"number\" id=\"hours\" name=\"minutes\" min=\"0\" max=\"24\" placeholder=\"0-24\"";
+      "<input type=\"number\" id=\"hours\" name=\"hours\" min=\"0\" max=\"24\" placeholder=\"0-24\"";
   HTML += argId[7];
   HTML +="=>"
         
@@ -255,54 +256,6 @@ void handleNotFound() {
   server.send(404, "text/plain", message);
 }
 
-void driveStepper(int c) {
-  digitalWrite(Pin1, pole1[c]);  
-  digitalWrite(Pin2, pole2[c]); 
-  digitalWrite(Pin3, pole3[c]); 
-  digitalWrite(Pin4, pole4[c]);   
-}
-
-void motorControl() {
-  if (server.arg(argId[0]) == "on") {
-    dirStatus = 1; // CCW 
-  } else if (server.arg(argId[0]) == "off") {
-    dirStatus = 3;  // motor OFF 
-  } else if (server.arg(argId[1]) == "on") {
-    dirStatus = 2;  // CW  
-  } else if (server.arg(argId[1]) == "off") {
-    dirStatus = 3;  // motor OFF
-  }
-  else if (server.arg(argId[2]) == "on"){
-    dirStatus = 4; // call move30
-  }
-  else if (server.arg(argId[2]) == "off"){
-    dirStatus = 3;
-  }
-  handleRoot();
-}
-
-void moveStepperAngle(int steps, int direction){
-  for (int i = 0; i < steps; i++){
-    if(direction == 1){ //CCW
-      poleStep = (poleStep + 1) % 8;
-    }
-    else{
-      poleStep = (poleStep - 1 + 8) % 8;
-    }
-    driveStepper(poleStep);
-    delay(2);
-  }
-}
-
-void handleMove30(){
-  int steps = 4096; // 360 degrees = 4096 steps. Ex: 1024 = 90 deg.
-
-  moveStepperAngle(steps,2);
-  delay(2000);
-  moveStepperAngle(steps,1);
-  handleRoot();
-}
-
 void displayInfo(){
   if(server.arg(argId[3]) == "show"){
     infoDisplayed = true;
@@ -312,13 +265,46 @@ void displayInfo(){
 }
 
 void startStop(){
-  // If button argument is false, turn system on, setting the buttons arg to true
+  //If button argument is false, turn system on, setting the buttons arg to true
   if(server.arg(argId[2]) == "true"){
     systemOn = true;
   }
   else systemOn = false;
+
+  if(selectedSize == "Small"){
+    openDelay = 500;
+  }
+  if(selectedSize == "Medium"){
+    openDelay = 1000;
+  }
+  if(selectedSize == "Large"){
+    openDelay = 1500;
+  }
+  // while(systemOn){
+  //   delay(interval);
+  //   foodRelease();
+  // }
+  foodRelease();
   handleRoot();
 }
+
+void foodRelease(){
+  stepper1.moveTo(targetPOS);
+  stepper1.runToPosition();
+  delay(openDelay);
+  stepper1.moveTo(homePOS);
+  stepper1.runToPosition();
+}
+
+void setPeriod() {
+  if (server.hasArg("hours") && server.hasArg("minutes")) {
+    feedHours = server.arg("hours").toInt();
+    feedMinutes = server.arg("minutes").toInt();
+  }
+  interval = (feedHours * 60 + feedMinutes) * 60 * 1000; 
+  handleRoot();
+}
+
 
 void smallSize(){
   if(server.arg(argId[4]) == "on"){
@@ -340,13 +326,11 @@ void largeSize(){
 }
 
 void setup(void) {
-  pinMode(Pin1, OUTPUT);  
-  pinMode(Pin2, OUTPUT);   
-  pinMode(Pin3, OUTPUT);   
-  pinMode(Pin4, OUTPUT);   
+  stepper1.setMaxSpeed(1000);
+  stepper1.setAcceleration(1000);
+  stepper1.setCurrentPosition(0);
 
   Serial.begin(115200);
-  Serial.println("Robojax 28BYJ-48 Stepper Motor Control");
 
   // Set up as Access Point
   WiFi.mode(WIFI_AP);
@@ -367,8 +351,7 @@ void setup(void) {
   server.on("/smallSize", HTTP_GET, smallSize);
   server.on("/mediumSize", HTTP_GET, mediumSize);
   server.on("/largeSize", HTTP_GET, largeSize);
-  server.on("/motor", HTTP_GET, motorControl);  
-  server.on("/move30", HTTP_GET, handleMove30);         
+  server.on("/period", HTTP_GET, setPeriod);
   server.onNotFound(handleNotFound);
   server.begin();
   Serial.println("HTTP server started");
@@ -376,32 +359,7 @@ void setup(void) {
 
 void loop(void) {
   server.handleClient();
-  while(dirStatus == 1){
-    if(poleStep >= 7){
-      poleStep = 0;
-    }
-    driveStepper(poleStep);
-    poleStep++; 
-    delay(1);
-    server.handleClient();
-  }
-  while(dirStatus == 2){
-    poleStep--; 
-    driveStepper(poleStep);
-    if(poleStep == 0){
-      poleStep = 7;
-    }
-    delay(1);
-    server.handleClient();
-  }
-  while(dirStatus == 4){
-    handleMove30();
-    dirStatus = 3;
-    server.handleClient();
-  }
-  if(dirStatus == 3){
-    poleStep = 8;
-  }
+  stepper1.run();
   delay(1);
 }
 
