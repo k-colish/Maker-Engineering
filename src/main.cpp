@@ -13,6 +13,7 @@ int homePOS = 0;
 int feedHours = 0;
 int feedMinutes = 0;
 int interval;
+unsigned long lastFeedTime = 0;
 
 bool systemOn = false;
 bool infoDisplayed = false;
@@ -268,6 +269,7 @@ void startStop(){
   //If button argument is false, turn system on, setting the buttons arg to true
   if(server.arg(argId[2]) == "true"){
     systemOn = true;
+    lastFeedTime = millis();
   }
   else systemOn = false;
 
@@ -280,11 +282,7 @@ void startStop(){
   if(selectedSize == "Large"){
     openDelay = 1500;
   }
-  // while(systemOn){
-  //   delay(interval);
-  //   foodRelease();
-  // }
-  foodRelease();
+ 
   handleRoot();
 }
 
@@ -301,7 +299,9 @@ void setPeriod() {
     feedHours = server.arg("hours").toInt();
     feedMinutes = server.arg("minutes").toInt();
   }
-  interval = (feedHours * 60 + feedMinutes) * 60 * 1000; 
+  interval = (feedHours * 60 + feedMinutes) * 60 * 1000;
+  Serial.print("Feeder will open every:");
+  Serial.println(interval); 
   handleRoot();
 }
 
@@ -360,6 +360,15 @@ void setup(void) {
 void loop(void) {
   server.handleClient();
   stepper1.run();
+
+  if(systemOn){
+    unsigned long currentTime = millis();
+    if(currentTime - lastFeedTime >= interval){
+      foodRelease();
+      lastFeedTime = currentTime;
+    }
+  }
+
   delay(1);
 }
 
