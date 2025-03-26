@@ -121,7 +121,7 @@ void handleRoot() {
       "font-size:25px;"
      "}"
    "</style>"
-   "</head>"
+   "</head>";
    "<body>"
     "<h1>Chicken Feeder Software</h1>"
       "<div>"
@@ -225,18 +225,17 @@ HTML += "=on\">Medium</a>"
   "</div>"
 "</form>";
 }
-HTML += "<h2>Feeding Period:</h2> "
-    "<form action=\"/period?\">"
-      "<label for=\"hours\">Hours:</label>"
-      "<input type=\"number\" id=\"hours\" name=\"hours\" min=\"0\" max=\"24\" placeholder=\"0-24\"";
-  HTML += argId[7];
-  HTML +="=>"
-        
-      "<label for=\"minutes\">Minutes:</label>"
-      "<input type=\"number\" id=\"minutes\" name=\"minutes\" min=\"0\" max=\"59\" placeholder=\"0-59\"><br><br>"
+HTML += "<h2>Feeding Period:</h2>"
+        "<form action=\"/period\">"
+        "<label for=\"hours\">Hours:</label>"
+        "<input type=\"number\" id=\"hours\" name=\"hours\" min=\"0\" max=\"24\" value=\"" + String(feedHours) + "\">"
 
-      "<input type=\"submit\" value=\"Set Time\">"
-    "</form>";
+        "<label for=\"minutes\">Minutes:</label>"
+        "<input type=\"number\" id=\"minutes\" name=\"minutes\" min=\"0\" max=\"59\" value=\"" + String(feedMinutes) + "\"><br><br>"
+
+        "<input class=\"onButton\" type=\"submit\" value=\"Set Time\">"
+        "</form>";
+
   server.send(200, "text/html", HTML);  
 }
 
