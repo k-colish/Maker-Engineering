@@ -232,10 +232,10 @@ HTML += "=on\">Medium</a>"
 HTML += "<h2>Feeding Period:</h2> "
     "<form name=\"period\" action=\"/period?\" method=\"GET\">"
       "<label for=\"hours\">Hours:</label>"
-      "<input type=\"number\" id=\"hours\" name=\"hours\" min=\"0\" max=\"24\" placeholder=\"0-24\">";
+      "<input type=\"number\" id=\"hours\" name=\"hours\" min=\"0\" max=\"24\" placeholder=\"0-24\" required>";
         
       "<label for=\"minutes\">Minutes:</label>"
-      "<input type=\"number\" id=\"minutes\" name=\"minutes\" min=\"0\" max=\"59\" placeholder=\"0-59\"><br><br>"
+      "<input type=\"number\" id=\"minutes\" name=\"minutes\" min=\"0\" max=\"59\" placeholder=\"0-59\" required><br><br>"
 
       "<input type=\"submit\" value=\"Set Time\">"
     "</form>";
