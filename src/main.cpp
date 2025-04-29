@@ -8,7 +8,7 @@
 #define DIR_PIN 12
 
 int openDelay;
-int targetPOS = 267;
+int targetPOS = 30;
 int homePOS = 0;
 int feedHours = 0;
 int feedMinutes = 0;
@@ -30,13 +30,14 @@ void mediumSize();
 void largeSize();
 void foodRelease();
 void setPeriod();
+void shake();
 
 String buttonTitle1[] = {"CCW", "CW", "START"};
 String buttonTitle2[] = {"CCW", "CW", "START"};
 String values = "";
 String argId[] = {"ccw", "cw", "start", "info", "small", "medium", "large", "hours", "minutes"};
 
-const char *ssid = "ChickenTEST";
+const char *ssid = "Chicken";
 const char *password = "12345678";
 
 WebServer server(80);
@@ -125,7 +126,7 @@ void handleRoot() {
       "font-size:25px;"
      "}"
    "</style>"
-   "</head>";
+   "</head>"
    "<body>"
     "<h1>Chicken Feeder Software</h1>"
       "<div>"
@@ -232,15 +233,13 @@ HTML += "=on\">Medium</a>"
 HTML += "<h2>Feeding Period:</h2> "
     "<form name=\"period\" action=\"/period?\" method=\"GET\">"
       "<label for=\"hours\">Hours:</label>"
-      "<input type=\"number\" id=\"hours\" name=\"hours\" min=\"0\" max=\"24\" placeholder=\"0-24\" required>";
+      "<input type=\"number\" id=\"hours\" name=\"hours\" min=\"0\" max=\"24\" placeholder=\"0-24\" required>"
         
       "<label for=\"minutes\">Minutes:</label>"
       "<input type=\"number\" id=\"minutes\" name=\"minutes\" min=\"0\" max=\"59\" placeholder=\"0-59\" required><br><br>"
 
       "<input type=\"submit\" value=\"Set Time\">"
     "</form>";
-  HTML += "<p>";
-  HTML += hours;
 
   server.send(200, "text/html", HTML);  
 }
@@ -279,13 +278,13 @@ void startStop(){
   else systemOn = false;
 
   if(selectedSize == "Small"){
-    openDelay = 500;
+    openDelay = 1500;
   }
   if(selectedSize == "Medium"){
-    openDelay = 1000;
+    openDelay = 2000;
   }
   if(selectedSize == "Large"){
-    openDelay = 1500;
+    openDelay = 2500;
   }
  
   handleRoot();
@@ -294,9 +293,20 @@ void startStop(){
 void foodRelease(){
   stepper1.moveTo(targetPOS);
   stepper1.runToPosition();
-  delay(openDelay);
+  shake();    // Shake the motor to help feed fall
   stepper1.moveTo(homePOS);
   stepper1.runToPosition();
+}
+
+void shake(){
+  unsigned long startTime = millis();
+  unsigned long currentTime = startTime;
+  while(currentTime - startTime <= openDelay){
+    stepper1.runToNewPosition(targetPOS+4);
+    stepper1.runToNewPosition(targetPOS);
+    currentTime = millis();
+  }
+  return;
 }
 
 void setPeriod() {
@@ -327,12 +337,6 @@ void largeSize(){
   if(server.arg(argId[6]) == "on"){
     selectedSize = "Large";
   }
-  handleRoot();
-}
-
-void setPeriod(){
-  values = server.arg("hours");
-  hours = atoi(values.c_str());
   handleRoot();
 }
 
@@ -371,7 +375,7 @@ void setup(void) {
 
 void loop(void) {
   server.handleClient();
-  stepper1.run();
+  // stepper1.run();
 
   if(systemOn){
     unsigned long currentTime = millis();
