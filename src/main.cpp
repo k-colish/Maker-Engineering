@@ -20,8 +20,8 @@ unsigned long lastFeedTime = 0;
 // Stepper Motor Variables
 bool systemOn = false;
 bool infoDisplayed = false;
-int targetPOS = 30;
-int homePOS = 0;
+int targetPOS = 0;
+int homePOS = 30;
 int poleStep = 0; 
 int dirStatus = 3; // stores direction status 3= stop (do not change)
 String selectedSize = "Small"; // default to small feed size
@@ -375,7 +375,9 @@ void setup(void) {
   // Set speed, acceleration, and start position
   stepper1.setMaxSpeed(1000);
   stepper1.setAcceleration(1000);
-  stepper1.setCurrentPosition(-30);
+  stepper1.setCurrentPosition(0);
+  stepper1.moveTo(homePOS);
+  stepper1.runToPosition();
 
   Serial.begin(115200);
 
