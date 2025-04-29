@@ -4,25 +4,29 @@
 #include <ESPmDNS.h>
 #include <AccelStepper.h>
 
+// Define stepper pins
 #define STEP_PIN 13
 #define DIR_PIN 12
 
+// Timing/Interval Variables
 int openDelay;
-int targetPOS = 30;
-int homePOS = 0;
 int feedHours = 0;
 int feedMinutes = 0;
 int interval;
-unsigned long lastFeedTime = 0;
-
-bool systemOn = false;
-bool infoDisplayed = false;
-int poleStep = 0; 
 int hours = 0;
 int minutes = 0;
+unsigned long lastFeedTime = 0;
+
+// Stepper Motor Variables
+bool systemOn = false;
+bool infoDisplayed = false;
+int targetPOS = 30;
+int homePOS = 0;
+int poleStep = 0; 
 int dirStatus = 3; // stores direction status 3= stop (do not change)
 String selectedSize = "Small"; // default to small feed size
 
+// Function Prototypes
 void displayInfo();
 void startStop();
 void smallSize();
@@ -32,17 +36,21 @@ void foodRelease();
 void setPeriod();
 void shake();
 
-String buttonTitle1[] = {"CCW", "CW", "START"};
-String buttonTitle2[] = {"CCW", "CW", "START"};
-String values = "";
+// Create list of argument IDs
 String argId[] = {"ccw", "cw", "start", "info", "small", "medium", "large", "hours", "minutes"};
 
+// WiFi name and password
 const char *ssid = "Chicken";
 const char *password = "12345678";
 
 WebServer server(80);
-
 AccelStepper stepper1(1, STEP_PIN, DIR_PIN);
+
+/*
+  handleRoot:
+    Contains the string for the website. Each line of HTML code is a separate line in the string. 
+    Checks and sets current feeding periods and timings, while updating the display.
+*/ 
 
 void handleRoot() {
    String HTML = "<!DOCTYPE html>"
@@ -243,7 +251,9 @@ HTML += "<h2>Feeding Period:</h2> "
 
   server.send(200, "text/html", HTML);  
 }
-
+/* handleNotFound
+     Function to ensure the server is set up correctly.
+*/
 void handleNotFound() {
   String message = "File Not Found\n";
   message += "URI: ";
@@ -269,6 +279,11 @@ void displayInfo(){
   handleRoot();
 }
 
+/*
+    startStop:
+      Used when the start/stop button is pressed to change the state of the system
+      Also handles the feed size intervals
+*/
 void startStop(){
   //If button argument is false, turn system on, setting the buttons arg to true
   if(server.arg(argId[2]) == "true"){
@@ -290,6 +305,11 @@ void startStop(){
   handleRoot();
 }
 
+/*
+  foodRelease:
+    Called every loop to move the stepper motor.
+    Shakes the motor back and forth to help prevent bridging issues.
+*/
 void foodRelease(){
   stepper1.moveTo(targetPOS);
   stepper1.runToPosition();
@@ -298,6 +318,10 @@ void foodRelease(){
   stepper1.runToPosition();
 }
 
+/*
+  shake:
+    function to move the stepper back and forth, simulating a shake.
+*/
 void shake(){
   unsigned long startTime = millis();
   unsigned long currentTime = startTime;
@@ -309,6 +333,10 @@ void shake(){
   return;
 }
 
+/*
+  setPeriod:
+    Gets arguments from text fields and sets the time between stepper movements.
+*/
 void setPeriod() {
   if (server.hasArg("hours") && server.hasArg("minutes")) {
     feedHours = server.arg("hours").toInt();
@@ -320,7 +348,10 @@ void setPeriod() {
   handleRoot();
 }
 
-
+/*
+  size functions:
+    Reads the arguments from the buttons and sets the selected size to adjust the shake time.
+*/
 void smallSize(){
   if(server.arg(argId[4]) == "on"){
     selectedSize = "Small";
@@ -341,9 +372,10 @@ void largeSize(){
 }
 
 void setup(void) {
+  // Set speed, acceleration, and start position
   stepper1.setMaxSpeed(1000);
   stepper1.setAcceleration(1000);
-  stepper1.setCurrentPosition(0);
+  stepper1.setCurrentPosition(-30);
 
   Serial.begin(115200);
 
@@ -360,6 +392,7 @@ void setup(void) {
     Serial.println("access via http://chickentest");
   }
 
+  // Add server arguments to call functions
   server.on("/", handleRoot);
   server.on("/info", HTTP_GET, displayInfo);
   server.on("/period", HTTP_GET, setPeriod);
@@ -374,9 +407,10 @@ void setup(void) {
 }
 
 void loop(void) {
+  // Update the server
   server.handleClient();
-  // stepper1.run();
 
+  // Run stepper if system is on and sufficient time has elapsed.
   if(systemOn){
     unsigned long currentTime = millis();
     if(currentTime - lastFeedTime >= interval){
