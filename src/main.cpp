@@ -243,7 +243,7 @@ HTML += "<h2>Feeding Period:</h2> "
       "<label for=\"hours\">Hours:</label>"
       "<input type=\"number\" id=\"hours\" name=\"hours\" min=\"0\" max=\"24\" placeholder=\"0-24\" required>"
         
-      "<label for=\"minutes\">Minutes:</label>"
+      "<label for=\"minutes\"> Minutes:</label>"
       "<input type=\"number\" id=\"minutes\" name=\"minutes\" min=\"0\" max=\"59\" placeholder=\"0-59\" required><br><br>"
 
       "<input type=\"submit\" value=\"Set Time\">"
@@ -293,13 +293,13 @@ void startStop(){
   else systemOn = false;
 
   if(selectedSize == "Small"){
-    openDelay = 1500;
+    openDelay = 4000;
   }
   if(selectedSize == "Medium"){
-    openDelay = 2000;
+    openDelay = 6000;
   }
   if(selectedSize == "Large"){
-    openDelay = 2500;
+    openDelay = 8500;
   }
  
   handleRoot();
